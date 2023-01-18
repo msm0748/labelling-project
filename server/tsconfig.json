@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        /* Language and Environment */
+        "target": "es6",
+
+        /* Modules */
+        "module": "commonjs",
+        "moduleResolution": "node",
+        // "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+
+        /* Type Checking */
+        "strict": true /* Skip type checking .d.ts files that are included with TypeScript. */,
+        "skipLibCheck": true
+    }
+}
