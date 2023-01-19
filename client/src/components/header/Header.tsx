@@ -48,10 +48,10 @@ function HeaderComponent() {
 
                 <StyledList>
                     <StyledItem padding="10px">
-                        <StyledLink to="/singup">회원가입</StyledLink>
+                        <StyledLink to="/signup">회원가입</StyledLink>
                     </StyledItem>
                     <StyledItem padding="10px">
-                        <StyledLink to="/singin" bc="rgba(26, 26, 26)" color="#fff">
+                        <StyledLink to="/signin" bc="rgba(26, 26, 26)" color="#fff">
                             로그인
                         </StyledLink>
                     </StyledItem>
