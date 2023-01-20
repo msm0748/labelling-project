@@ -2,6 +2,12 @@ import styled from "styled-components";
 import naverImg from "../assets/images/naver.png";
 import kakaoImg from "../assets/images/kakao.png";
 import googleImg from "../assets/images/google.png";
+import auth from "../lib/firebase";
+import Wrap from "../components/common/Wrap";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import { db } from "../lib/firebase";
+import { setDoc, doc, getDoc } from "firebase/firestore";
 
 const StyledContainer = styled.div`
     display: flex;
@@ -45,22 +51,59 @@ interface Props {
 }
 
 function LoginComponent({ text }: Props) {
+    const provider = new GoogleAuthProvider();
+    const navigate = useNavigate();
+
+    const onGoogleClick = async () => {
+        const result = await signInWithPopup(auth, provider);
+        const { uid, displayName, email, photoURL } = result.user;
+        const docRef = doc(db, "users", uid);
+        const docSnap = await getDoc(docRef);
+
+        //구글로 로그인시 첫로그인만(회원가입 개념) users데이터에 정보 넣기
+        if (!docSnap.exists()) {
+            await setDoc(doc(db, "users", uid), {
+                name: displayName,
+                email: email,
+                photoURL: photoURL,
+                uid: uid,
+                currentPoint: 0,
+                totalPoint: 0,
+                createdAt: Date.now(),
+            });
+        }
+        navigate("/");
+    };
+
+    const onNaverClick = () => {
+        window.location.replace(
+            `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${process.env.REACT_APP_NAVER_CLIENT_ID}&state=test&redirect_uri=${process.env.REACT_APP_REDIRECT_URL}/oauth/naver`
+        );
+    };
+
+    const onKakaoClick = () => {
+        window.location.replace(
+            `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${process.env.REACT_APP_KAKAO_CLIENT_ID}&redirect_uri=${process.env.REACT_APP_REDIRECT_URL}/oauth/kakao`
+        );
+    };
     return (
-        <StyledContainer>
-            <StyleHead>SNS {text}</StyleHead>
-            <StyledButton bc="rgb(30, 200, 0)" color="#fff">
-                <img src={naverImg} alt="네이버 로고" />
-                <div>네이버 {text}</div>
-            </StyledButton>
-            <StyledButton bc="rgb(250, 227, 0)">
-                <img src={kakaoImg} alt="카카오 로고" />
-                <div>카카오 {text}</div>
-            </StyledButton>
-            <StyledButton border="1px solid rgb(235, 236, 239)" pl="0" pr="0">
-                <img src={googleImg} alt="구글 로고" />
-                <div>Google {text}</div>
-            </StyledButton>
-        </StyledContainer>
+        <Wrap>
+            <StyledContainer>
+                <StyleHead>SNS {text}</StyleHead>
+                <StyledButton bc="rgb(30, 200, 0)" color="#fff" onClick={onNaverClick}>
+                    <img src={naverImg} alt="네이버 로고" />
+                    <div>네이버 {text}</div>
+                </StyledButton>
+                <StyledButton bc="rgb(250, 227, 0)" onClick={onKakaoClick}>
+                    <img src={kakaoImg} alt="카카오 로고" />
+                    <div>카카오 {text}</div>
+                </StyledButton>
+                <StyledButton border="1px solid rgb(235, 236, 239)" pl="0" pr="0" onClick={onGoogleClick}>
+                    <img src={googleImg} alt="구글 로고" />
+                    <div>Google {text}</div>
+                </StyledButton>
+            </StyledContainer>
+        </Wrap>
     );
 }
 
