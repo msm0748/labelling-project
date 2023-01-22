@@ -4,6 +4,7 @@ import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import KakaoAuth from "./pages/oauth/Kakao";
 import NaverAuth from "./pages/oauth/Naver";
+import Bounding from "./pages/mission/Bounding";
 
 export default function Router() {
     const element = useRoutes([
@@ -26,6 +27,10 @@ export default function Router() {
         {
             path: "/oauth/naver",
             element: <NaverAuth />,
+        },
+        {
+            path: "/mission/bounding",
+            element: <Bounding />,
         },
     ]);
     return element;

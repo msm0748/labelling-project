@@ -46,8 +46,6 @@ function MainMenu({ openModal, onClose, user }: Props) {
     const onLogOutClick = () => {
         signOut(auth);
     };
-
-    console.log("자식 랜더링");
     return (
         <Modal open={openModal} onClose={onClose}>
             <StyledList>

@@ -3,7 +3,7 @@ import styled, { css } from "styled-components";
 // width: ${(props) => (props.fullScreen ? "" : "1024")}px;
 // ${(props) => (props.fullScreen ? "" : "width: 1024px; margin: 0 auto;")}
 
-const StyledWrap = styled.div<{ fullScreen?: boolean }>`
+const Wrap = styled.div<{ fullScreen?: boolean }>`
     ${(props) =>
         props.fullScreen
             ? css``
@@ -13,4 +13,4 @@ const StyledWrap = styled.div<{ fullScreen?: boolean }>`
               `}
 `;
 
-export default StyledWrap;
+export default Wrap;
