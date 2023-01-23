@@ -1,4 +1,4 @@
-import Canvas from "../common/BoundingCanvas";
+import Canvas from "./BoundingCanvas";
 
 function BoundingComponent() {
     return <Canvas></Canvas>;
