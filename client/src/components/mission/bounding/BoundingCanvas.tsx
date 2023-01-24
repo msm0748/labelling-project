@@ -1,19 +1,34 @@
 import { MouseEvent, useRef, useEffect } from "react";
 import Bounding from "../../../lib/bounding";
+import styled from "styled-components";
+
+interface Props {
+    tool: "select" | "move" | "bounding";
+}
 
 const bounding = new Bounding();
 
-function Canvas() {
+const StyledWrap = styled.section`
+    display: flex;
+    flex: 1;
+`;
+
+const StyledCanvas = styled.canvas`
+    width: 100%;
+    height: 100%;
+`;
+
+function Canvas({ tool }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     // const [elements, setElements] = useState<IElements[]>([]);
 
     useEffect(() => {
         const canvas = canvasRef.current!;
         bounding.init(canvas);
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
     }, []);
-    console.log("바운딩 캔버스 렌더링");
+    console.log("바운딩 캔버스 렌더링", tool);
 
     const mouseDown = ({ nativeEvent }: MouseEvent) => {
         const { offsetX, offsetY } = nativeEvent;
@@ -28,7 +43,11 @@ function Canvas() {
         bounding.drawEnd(offsetX, offsetY);
     };
 
-    return <canvas ref={canvasRef} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={mouseUp}></canvas>;
+    return (
+        <StyledWrap>
+            <StyledCanvas ref={canvasRef} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={mouseUp}></StyledCanvas>
+        </StyledWrap>
+    );
 }
 
 export default Canvas;

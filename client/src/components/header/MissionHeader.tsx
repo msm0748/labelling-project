@@ -5,7 +5,7 @@ import Wrap from "../common/Wrap";
 const StyledWrap = styled(Wrap)`
     display: flex;
     justify-content: space-between;
-    height: 50px;
+    height: 48px;
     padding: 0 15px;
 `;
 

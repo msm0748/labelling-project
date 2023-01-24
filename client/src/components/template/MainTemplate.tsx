@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import styled from "styled-components";
 
 interface Props {
     header: ReactNode;
@@ -6,11 +7,15 @@ interface Props {
     footer?: ReactNode;
 }
 
+const StyledMain = styled.main`
+    height: calc(100% - 48px); // header 높이 제외
+`;
+
 function PageTemplate({ header, children, footer }: Props) {
     return (
         <>
             <header>{header}</header>
-            <main>{children}</main>
+            <StyledMain>{children}</StyledMain>
             {footer}
         </>
     );

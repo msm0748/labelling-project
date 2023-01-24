@@ -7,8 +7,20 @@ const GlobalStyle = createGlobalStyle`
         box-sizing: border-box;
         font-size: 16px;
     }
+    *:before, *:after{
+        display:none;
+        content:"";
+        position: absolute;
+    }
+    html{
+        height: 100%;
+    }
     body{
+        height: 100%;
         overflow: hidden;
+    }
+    #root{
+        height: 100%;
     }
     a{
         text-decoration: none;
