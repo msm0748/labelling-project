@@ -5,6 +5,12 @@ import styled from "styled-components";
 interface Props {
     tool: "select" | "move" | "bounding";
 }
+// interface IElements {
+//     x: number;
+//     y: number;
+//     width: number;
+//     height: number;
+// }
 
 const bounding = new Bounding();
 
@@ -28,7 +34,9 @@ function Canvas({ tool }: Props) {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
     }, []);
-    console.log("바운딩 캔버스 렌더링", tool);
+    useEffect(() => {
+        bounding.tools(tool);
+    }, [tool]);
 
     const mouseDown = ({ nativeEvent }: MouseEvent) => {
         const { offsetX, offsetY } = nativeEvent;

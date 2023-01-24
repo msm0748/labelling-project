@@ -69,14 +69,14 @@ const StyledButton = styled.button<{ text: string }>`
 function Tool({ tool, setTool }: Props) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            switch (e.key) {
-                case "v":
+            switch (e.code) {
+                case "KeyV":
                     setTool("select");
                     break;
-                case "m":
+                case "KeyM":
                     setTool("move");
                     break;
-                case "b":
+                case "KeyB":
                     setTool("bounding");
                     break;
             }
@@ -85,8 +85,7 @@ function Tool({ tool, setTool }: Props) {
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, []);
-
+    }, [setTool]);
     return (
         <StyledWrap>
             <StyledList line={3}>
