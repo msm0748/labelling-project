@@ -1,9 +1,5 @@
-interface IElements {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
+import { MouseEvent } from "react";
+import { IElements } from "./index.type";
 class Bounding {
     private canvas: HTMLCanvasElement | null;
     private ctx: CanvasRenderingContext2D | null;
@@ -14,8 +10,10 @@ class Bounding {
     private cY: number;
     private width: number;
     private height: number;
-    private isDrawing: boolean;
+    private action: "none" | "moving" | "drawing";
     private tool: "select" | "move" | "bounding";
+    private selectedElement: IElements | null;
+    private updateElement: IElements | null;
 
     constructor() {
         this.canvas = null;
@@ -27,8 +25,10 @@ class Bounding {
         this.cY = 0;
         this.width = 0;
         this.height = 0;
-        this.isDrawing = false;
+        this.action = "none";
         this.tool = "select";
+        this.selectedElement = null;
+        this.updateElement = null;
     }
     init(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -38,13 +38,16 @@ class Bounding {
         this.tool = tool;
         this.reRednder();
     }
+
     reRednder() {
         this.ctx?.clearRect(0, 0, this.canvas!.offsetWidth, this.canvas!.offsetHeight);
-        this.elements.forEach(({ x, y, width, height }) => {
+        this.elements.forEach(({ sX, sY, cX, cY }) => {
             // 기존 strokeRect는 보존하되 잔상 제거
+            const width = cX - sX;
+            const height = cY - sY;
             this.ctx?.setLineDash([]);
             this.ctx!.strokeStyle = "green";
-            this.ctx?.strokeRect(x, y, width, height);
+            this.ctx?.strokeRect(sX, sY, width, height);
         });
         this.crosshair();
     }
@@ -65,42 +68,89 @@ class Bounding {
         this.ctx?.stroke();
         this.ctx?.closePath();
     }
-    drawStart(cX: number, cY: number) {
-        if (this.isDrawing) return;
-        this.isDrawing = true;
-        this.sX = cX;
-        this.sY = cY;
+    drawStart(e: MouseEvent) {
+        const { offsetX: cX, offsetY: cY } = e.nativeEvent;
+        if (this.tool === "select") {
+            this.sX = cX;
+            this.sY = cY;
+            const element = this.getElementPosition(cX, cY, this.elements);
+            if (element) {
+                this.action = "moving";
+                this.selectedElement = element;
+            }
+        } else if (this.tool === "bounding") {
+            if (this.action !== "none") return;
+            this.sX = cX;
+            this.sY = cY;
+            this.action = "drawing";
+        }
     }
-    draw(cX: number, cY: number) {
+    draw(e: MouseEvent) {
+        const { offsetX: cX, offsetY: cY } = e.nativeEvent;
         this.cX = cX;
         this.cY = cY;
         this.reRednder();
 
-        if (!this.isDrawing) return;
-        this.width = cX - this.sX;
-        this.height = cY - this.sY;
-        this.ctx?.setLineDash([]);
-        this.ctx!.strokeStyle = "green";
-        this.ctx!.fillStyle = "rgba(173,255,47, 0.5)";
-        this.ctx?.fillRect(this.sX, this.sY, this.width, this.height);
-        this.ctx?.strokeRect(this.sX, this.sY, this.width, this.height);
+        if (this.tool === "select") {
+            const target = e.target as HTMLCanvasElement;
+            target.style.cursor = this.getElementPosition(cX, cY, this.elements) ? "move" : "default";
+        }
+
+        if (this.action === "drawing") {
+            this.width = cX - this.sX;
+            this.height = cY - this.sY;
+            this.ctx?.setLineDash([]);
+            this.ctx!.strokeStyle = "green";
+            this.ctx!.fillStyle = "rgba(173,255,47, 0.5)";
+            this.ctx?.fillRect(this.sX, this.sY, this.width, this.height);
+            this.ctx?.strokeRect(this.sX, this.sY, this.width, this.height);
+        } else if (this.action === "moving") {
+            if (this.selectedElement) {
+                const { id, sX, sY, cX, cY } = this.selectedElement;
+                const width = cX - sX;
+                const height = cY - sY;
+
+                const offsetX = this.sX - sX;
+                const offsetY = this.sY - sY;
+                const newX = this.cX - offsetX;
+                const newY = this.cY - offsetY;
+                //자연스럽게 이동
+                this.updateElement = this.createElement(id, newX, newY, newX + width, newY + height);
+                this.elements[id] = this.updateElement;
+            }
+        }
     }
-    drawEnd(cX: number, cY: number) {
-        if (this.sX === cX && this.sY === cY) return; // 제자리  찍었을때 방지
-        this.isDrawing = false;
-        const element = this.createElement();
-        this.elements.push(element);
+    drawEnd(e: MouseEvent) {
+        const { offsetX: cX, offsetY: cY } = e.nativeEvent;
+        if (Math.abs(this.sX - cX) < 5 && Math.abs(this.sY - cY) < 5) return; // 제자리  찍었을때 방지
+        this.action = "none";
+
+        if (this.tool === "bounding") {
+            const element = this.createElement(this.elements.length, this.sX, this.sY, cX, cY);
+            this.elements = [...this.elements, element];
+        } else if (this.tool === "select") {
+            if (this.updateElement) {
+                this.elements = [...this.elements];
+                this.updateElement = null;
+            }
+        }
         this.reRednder();
     }
-    createElement() {
-        const element: IElements = {
-            x: this.sX,
-            y: this.sY,
-            width: this.width,
-            height: this.height,
-        };
-        return element;
+    createElement(id: number, sX: number, sY: number, cX: number, cY: number) {
+        return { id, sX, sY, cX, cY };
     }
+    getElementPosition = (cX: number, cY: number, elements: IElements[]) => {
+        // elements.reverse();
+        return elements.find((element) => this.isWithinElement(cX, cY, element)); // 마지막 rect 값 가져옴
+    };
+    isWithinElement = (x: number, y: number, element: IElements) => {
+        const { sX, sY, cX, cY } = element;
+        const minX = Math.min(sX, cX);
+        const maxX = Math.max(sX, cX);
+        const minY = Math.min(sY, cY);
+        const maxY = Math.max(sY, cY);
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    };
 }
 
 export default Bounding;

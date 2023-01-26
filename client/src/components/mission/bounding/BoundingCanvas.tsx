@@ -1,16 +1,13 @@
-import { MouseEvent, useRef, useEffect } from "react";
-import Bounding from "../../../lib/bounding";
+import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction } from "react";
 import styled from "styled-components";
+import Bounding from "../../../lib/bounding";
+import { IElements } from "../../../lib/bounding/index.type";
 
 interface Props {
     tool: "select" | "move" | "bounding";
+    elements: IElements[];
+    setElements: Dispatch<SetStateAction<IElements[]>>;
 }
-// interface IElements {
-//     x: number;
-//     y: number;
-//     width: number;
-//     height: number;
-// }
 
 const bounding = new Bounding();
 
@@ -24,9 +21,8 @@ const StyledCanvas = styled.canvas`
     height: 100%;
 `;
 
-function Canvas({ tool }: Props) {
+function Canvas({ tool, elements, setElements }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    // const [elements, setElements] = useState<IElements[]>([]);
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -38,17 +34,15 @@ function Canvas({ tool }: Props) {
         bounding.tools(tool);
     }, [tool]);
 
-    const mouseDown = ({ nativeEvent }: MouseEvent) => {
-        const { offsetX, offsetY } = nativeEvent;
-        bounding.drawStart(offsetX, offsetY);
+    const mouseDown = (e: MouseEvent) => {
+        bounding.drawStart(e);
     };
-    const mouseMove = ({ nativeEvent }: MouseEvent) => {
-        const { offsetX, offsetY } = nativeEvent;
-        bounding.draw(offsetX, offsetY);
+    const mouseMove = (e: MouseEvent) => {
+        bounding.draw(e);
     };
-    const mouseUp = ({ nativeEvent }: MouseEvent) => {
-        const { offsetX, offsetY } = nativeEvent;
-        bounding.drawEnd(offsetX, offsetY);
+    const mouseUp = (e: MouseEvent) => {
+        bounding.drawEnd(e);
+        setElements(bounding.elements);
     };
 
     return (
