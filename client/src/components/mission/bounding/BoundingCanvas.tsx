@@ -1,6 +1,6 @@
 import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction } from "react";
 import styled from "styled-components";
-import Bounding from "../../../lib/bounding";
+import Bounding from "../../../lib/bounding/index";
 import { IElements } from "../../../lib/bounding/index.type";
 
 interface Props {
@@ -34,20 +34,20 @@ function Canvas({ tool, elements, setElements }: Props) {
         bounding.tools(tool);
     }, [tool]);
 
-    const mouseDown = (e: MouseEvent) => {
-        bounding.drawStart(e);
+    const handleMouseDown = (e: MouseEvent) => {
+        bounding.handleMouseDown(e);
     };
-    const mouseMove = (e: MouseEvent) => {
-        bounding.draw(e);
+    const handleMouseMove = (e: MouseEvent) => {
+        bounding.handleMouseMove(e);
     };
-    const mouseUp = (e: MouseEvent) => {
-        bounding.drawEnd(e);
+    const handleMouseUp = (e: MouseEvent) => {
+        bounding.handleMouseUp(e);
         setElements(bounding.elements);
     };
 
     return (
         <StyledWrap>
-            <StyledCanvas ref={canvasRef} onMouseDown={mouseDown} onMouseMove={mouseMove} onMouseUp={mouseUp}></StyledCanvas>
+            <StyledCanvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}></StyledCanvas>
         </StyledWrap>
     );
 }
