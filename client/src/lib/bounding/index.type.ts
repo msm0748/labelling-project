@@ -4,6 +4,7 @@ interface IElements {
     sY: number;
     cX: number;
     cY: number;
+    position?: string | null;
 }
 
 export type { IElements };
