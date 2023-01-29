@@ -1,5 +1,5 @@
 import { MouseEvent } from "react";
-import { IElements } from "./index.type";
+import { IElements, ICategory } from "./index.type";
 
 class Bounding {
     private canvas: HTMLCanvasElement | null;
@@ -14,6 +14,8 @@ class Bounding {
     private selectedElement: IElements | null;
     private updateElement: IElements | null;
     private resizePoint: number;
+    private categoryColor: string;
+    private categoryTitle: string;
 
     constructor() {
         this.canvas = null;
@@ -28,10 +30,25 @@ class Bounding {
         this.selectedElement = null;
         this.updateElement = null;
         this.resizePoint = 12;
+        this.categoryColor = "";
+        this.categoryTitle = "";
     }
+
     init(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d")!;
+    }
+    getCategory({ categoryColor, categoryTitle }: ICategory) {
+        this.categoryColor = categoryColor;
+        this.categoryTitle = categoryTitle;
+    }
+    setCategory(index: number | null, { categoryColor, categoryTitle }: ICategory) {
+        if (index !== null) {
+            this.elements[index].categoryColor = categoryColor;
+            this.elements[index].categoryTitle = categoryTitle;
+        }
+        this.elements = [...this.elements];
+        this.reRednder();
     }
     tools(tool: "select" | "move" | "bounding") {
         this.tool = tool;
@@ -42,18 +59,19 @@ class Bounding {
     }
     reRednder() {
         this.ctx?.clearRect(0, 0, this.canvas!.offsetWidth, this.canvas!.offsetHeight);
-        this.elements.forEach(({ sX, sY, cX, cY }, index) => {
+        this.elements.forEach(({ sX, sY, cX, cY, categoryColor }, index) => {
             // 기존 strokeRect는 보존하되 잔상 제거
 
             const width = cX - sX;
             const height = cY - sY;
             this.ctx?.setLineDash([]);
-            this.ctx!.strokeStyle = "green";
+            this.ctx!.globalAlpha = 1;
+            this.ctx!.strokeStyle = categoryColor;
             this.ctx?.strokeRect(sX, sY, width, height);
             if (this.selectedElement) {
                 // 현재 선택중인 rect 색상 변경
                 if (index === this.selectedElement.id) {
-                    this.ctx!.strokeStyle = "red";
+                    this.ctx!.strokeStyle = this.selectedElement.categoryColor;
                     this.ctx!.fillStyle = "white";
                     this.ctx?.strokeRect(sX, sY, width, height);
 
@@ -77,6 +95,7 @@ class Bounding {
         if (this.tool !== "bounding") return;
 
         this.ctx?.setLineDash([2, 5]);
+        this.ctx!.globalAlpha = 1;
         this.ctx!.strokeStyle = "black";
         this.ctx?.beginPath();
         this.ctx?.moveTo(0, this.cY);
@@ -131,10 +150,12 @@ class Bounding {
                 const width = offsetX - this.sX;
                 const height = offsetY - this.sY;
                 this.ctx?.setLineDash([]);
-                this.ctx!.strokeStyle = "green";
-                this.ctx!.fillStyle = "rgba(173,255,47, 0.5)";
-                this.ctx?.fillRect(this.sX, this.sY, width, height);
+                this.ctx!.strokeStyle = this.categoryColor;
+                this.ctx!.globalAlpha = 1;
                 this.ctx?.strokeRect(this.sX, this.sY, width, height);
+                this.ctx!.globalAlpha = 0.1;
+                this.ctx!.fillStyle = this.categoryColor;
+                this.ctx?.fillRect(this.sX, this.sY, width, height);
             }
         } else if (this.tool === "select") {
             const element = this.getElementPosition(offsetX, offsetY, this.elements);
@@ -144,7 +165,7 @@ class Bounding {
 
             if (this.action === "moving") {
                 if (this.selectedElement) {
-                    const { id, sX, sY, cX, cY } = this.selectedElement;
+                    const { id, sX, sY, cX, cY, categoryColor, categoryTitle } = this.selectedElement;
                     const width = cX - sX;
                     const height = cY - sY;
 
@@ -160,17 +181,17 @@ class Bounding {
                     if (newY + height > this.canvas!.height) newY = this.canvas!.height - height;
                     //canvas 이탈 금지
 
-                    this.updateElement = this.createElement(id, newX, newY, newX + width, newY + height);
+                    this.updateElement = this.createElement(id, newX, newY, newX + width, newY + height, categoryColor, categoryTitle);
                     this.elements[id] = this.updateElement;
                 }
             } else if (this.action === "resizing") {
                 if (this.selectedElement) {
                     const { position, ...coordinates } = this.selectedElement;
-                    const { id } = this.selectedElement;
+                    const { id, categoryColor, categoryTitle } = this.selectedElement;
                     if (position) {
                         const { sX, sY, cX, cY } = this.resizedCoordinates(offsetX, offsetY, position, coordinates);
 
-                        const element = this.createElement(id, sX, sY, cX, cY);
+                        const element = this.createElement(id, sX, sY, cX, cY, categoryColor, categoryTitle);
                         const adjustElement = this.adjustElementCoordinates(element);
 
                         this.updateElement = adjustElement;
@@ -185,7 +206,7 @@ class Bounding {
         if (this.tool === "bounding") {
             if (Math.abs(this.sX - offsetX) < 5 && Math.abs(this.sY - offsetY) < 5) return;
             if (this.action !== "drawing") return;
-            const element = this.createElement(this.elements.length, this.sX, this.sY, offsetX, offsetY);
+            const element = this.createElement(this.elements.length, this.sX, this.sY, offsetX, offsetY, this.categoryColor, this.categoryTitle);
             const adjustElement = this.adjustElementCoordinates(element);
             this.elements = [...this.elements, adjustElement];
         } else if (this.tool === "select") {
@@ -198,8 +219,8 @@ class Bounding {
         this.action = "none";
         this.reRednder();
     }
-    createElement(id: number, sX: number, sY: number, cX: number, cY: number) {
-        return { id, sX, sY, cX, cY };
+    createElement(id: number, sX: number, sY: number, cX: number, cY: number, categoryColor: string, categoryTitle: string) {
+        return { id, sX, sY, cX, cY, categoryColor, categoryTitle };
     }
     getElementPosition = (cX: number, cY: number, elements: IElements[]) => {
         const elementsCopy = [...elements].reverse(); // 마지막 rect 값 가져옴
@@ -283,12 +304,12 @@ class Bounding {
     }
     adjustElementCoordinates(element: IElements) {
         //오른쪽에서 왼쪽으로 그릴때 좌표값 제대로  잡아주기
-        const { id, sX, sY, cX, cY } = element;
+        const { id, sX, sY, cX, cY, categoryTitle, categoryColor } = element;
         const minX = Math.min(sX, cX);
         const maxX = Math.max(sX, cX);
         const minY = Math.min(sY, cY);
         const maxY = Math.max(sY, cY);
-        return { id, sX: minX, sY: minY, cX: maxX, cY: maxY };
+        return { id, sX: minX, sY: minY, cX: maxX, cY: maxY, categoryTitle, categoryColor };
     }
 }
 

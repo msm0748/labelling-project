@@ -1,4 +1,4 @@
-interface IElements {
+interface IElements extends ICategory {
     id: number;
     sX: number;
     sY: number;
@@ -8,8 +8,8 @@ interface IElements {
 }
 
 interface ICategory {
-    title: string;
-    color: string;
+    categoryTitle: string;
+    categoryColor: string;
 }
 
 export type { IElements, ICategory };

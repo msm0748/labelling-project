@@ -1,5 +1,5 @@
 import { useState, Dispatch, SetStateAction } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import StyledColorPoint from "./StyledColorPoint";
 import CategoryItem from "./CategoryItem";
 import { ICategory } from "../../../lib/bounding/index.type";
@@ -8,12 +8,18 @@ interface Props {
     category: ICategory;
     setCategory: Dispatch<SetStateAction<ICategory>>;
     categoryList: ICategory[];
+    isAbsolute?: boolean;
 }
 
-const StyledDropDownWrap = styled.div`
-    position: absolute;
-    top: 8px;
-    left: 8px;
+const StyledDropDownWrap = styled.div<{ isAbsolute?: boolean }>`
+    ${(props) =>
+        props.isAbsolute &&
+        css`
+            position: absolute;
+            top: 8px;
+            left: 8px;
+        `}
+
     z-index: 100;
     font-size: 18px;
     & > * {
@@ -28,6 +34,8 @@ const StyledCategory = styled.div`
     display: flex;
     align-items: center;
     padding: 15px;
+    display: flex;
+    justify-content: space-between;
 `;
 const StyledSelect = styled.div`
     margin-right: 15px;
@@ -35,18 +43,25 @@ const StyledSelect = styled.div`
 
 const StyledList = styled.ul`
     background: #fff;
+    box-shadow: rgb(0 0 0 / 7%) 0px 4px 16px;
+`;
+const StyledBlock = styled.div`
+    display: flex;
+    align-items: center;
 `;
 
-function Category({ category, setCategory, categoryList }: Props) {
+function Category({ category, setCategory, categoryList, isAbsolute }: Props) {
     const [isDropDown, setIsDropDown] = useState(false);
     const handleDropDown = () => {
         setIsDropDown((prev) => !prev);
     };
     return (
-        <StyledDropDownWrap>
+        <StyledDropDownWrap isAbsolute={isAbsolute}>
             <StyledCategory onClick={handleDropDown}>
-                <StyledColorPoint color={category.color} />
-                <StyledSelect>{category.title}</StyledSelect>
+                <StyledBlock>
+                    <StyledColorPoint color={category.categoryColor} />
+                    <StyledSelect>{category.categoryTitle}</StyledSelect>
+                </StyledBlock>
                 {isDropDown ? (
                     <svg width="16" height="16" fill="#fff" xmlns="http://www.w3.org/2000/svg" fillOpacity="1" viewBox="0 0 96 96">
                         <path
@@ -72,7 +87,13 @@ function Category({ category, setCategory, categoryList }: Props) {
             {isDropDown && (
                 <StyledList>
                     {categoryList.map((item, index) => (
-                        <CategoryItem key={index} title={item.title} color={item.color} setCategory={setCategory} setIsDropDown={setIsDropDown}></CategoryItem>
+                        <CategoryItem
+                            key={index}
+                            categoryTitle={item.categoryTitle}
+                            categoryColor={item.categoryColor}
+                            setCategory={setCategory}
+                            setIsDropDown={setIsDropDown}
+                        ></CategoryItem>
                     ))}
                 </StyledList>
             )}

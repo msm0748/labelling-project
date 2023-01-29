@@ -1,4 +1,4 @@
-import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction } from "react";
+import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction, useState } from "react";
 import styled from "styled-components";
 import Bounding from "../../../lib/bounding/index";
 import DropDown from "../../common/category";
@@ -7,13 +7,10 @@ import { IElements, ICategory } from "../../../lib/bounding/index.type";
 interface Props {
     tool: "select" | "move" | "bounding";
     elements: IElements[];
-    category: ICategory;
     setElements: Dispatch<SetStateAction<IElements[]>>;
-    setCategory: Dispatch<SetStateAction<ICategory>>;
     categoryList: ICategory[];
+    bounding: Bounding;
 }
-
-const bounding = new Bounding();
 
 const StyledWrap = styled.section`
     display: flex;
@@ -26,19 +23,22 @@ const StyledCanvas = styled.canvas`
     height: 100%;
 `;
 
-function Canvas({ tool, elements, setElements, category, setCategory, categoryList }: Props) {
+function Canvas({ tool, elements, setElements, categoryList, bounding }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [category, setCategory] = useState<ICategory>(categoryList[0]);
 
     useEffect(() => {
         const canvas = canvasRef.current!;
         bounding.init(canvas);
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-    }, []);
+    }, [bounding]);
     useEffect(() => {
         bounding.tools(tool);
-        console.log(tool);
-    }, [tool]);
+    }, [bounding, tool]);
+    useEffect(() => {
+        bounding.getCategory(category);
+    }, [bounding, category]);
 
     const handleMouseDown = (e: MouseEvent) => {
         bounding.handleMouseDown(e);
@@ -53,7 +53,7 @@ function Canvas({ tool, elements, setElements, category, setCategory, categoryLi
 
     return (
         <StyledWrap>
-            {tool === "bounding" && <DropDown category={category} setCategory={setCategory} categoryList={categoryList} />}
+            {tool === "bounding" && <DropDown category={category} setCategory={setCategory} categoryList={categoryList} isAbsolute={true} />}
             <StyledCanvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}></StyledCanvas>
         </StyledWrap>
     );

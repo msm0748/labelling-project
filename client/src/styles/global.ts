@@ -35,6 +35,16 @@ const GlobalStyle = createGlobalStyle`
         background: inherit;
         color: inherit;
     }
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #ccc;
+    }
+    ::-webkit-scrollbar-track {
+        background: #FFFFFF;
+        border: 1px solid #D8D8D8;
+    }
 `;
 
 export default GlobalStyle;

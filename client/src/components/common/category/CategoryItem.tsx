@@ -1,11 +1,9 @@
 import { Dispatch, SetStateAction } from "react";
 import styled from "styled-components";
-import StyledColorPoint from "./StyledColorPoint";
 import { ICategory } from "../../../lib/bounding/index.type";
+import StyledCategoryItem from "./ColorPointItem";
 
-interface Props {
-    title: string;
-    color: string;
+interface Props extends ICategory {
     setCategory: Dispatch<SetStateAction<ICategory>>;
     setIsDropDown: Dispatch<SetStateAction<boolean>>;
 }
@@ -19,16 +17,15 @@ const StyledItem = styled.li`
     }
 `;
 
-function CategoryItem({ title, color, setCategory, setIsDropDown }: Props) {
+function CategoryItem({ categoryTitle, categoryColor, setCategory, setIsDropDown }: Props) {
     const hadleOnClick = () => {
-        setCategory({ color, title });
+        setCategory({ categoryColor, categoryTitle });
         setIsDropDown((prev) => !prev);
     };
     return (
         <>
             <StyledItem onClick={hadleOnClick}>
-                <StyledColorPoint color={color} />
-                <div>{title}</div>
+                <StyledCategoryItem categoryTitle={categoryTitle} categoryColor={categoryColor} />
             </StyledItem>
         </>
     );
