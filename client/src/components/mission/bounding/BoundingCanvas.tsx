@@ -1,12 +1,16 @@
 import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction } from "react";
 import styled from "styled-components";
 import Bounding from "../../../lib/bounding/index";
-import { IElements } from "../../../lib/bounding/index.type";
+import DropDown from "../../common/category";
+import { IElements, ICategory } from "../../../lib/bounding/index.type";
 
 interface Props {
     tool: "select" | "move" | "bounding";
     elements: IElements[];
+    category: ICategory;
     setElements: Dispatch<SetStateAction<IElements[]>>;
+    setCategory: Dispatch<SetStateAction<ICategory>>;
+    categoryList: ICategory[];
 }
 
 const bounding = new Bounding();
@@ -14,6 +18,7 @@ const bounding = new Bounding();
 const StyledWrap = styled.section`
     display: flex;
     flex: 1;
+    position: relative;
 `;
 
 const StyledCanvas = styled.canvas`
@@ -21,7 +26,7 @@ const StyledCanvas = styled.canvas`
     height: 100%;
 `;
 
-function Canvas({ tool, elements, setElements }: Props) {
+function Canvas({ tool, elements, setElements, category, setCategory, categoryList }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -32,6 +37,7 @@ function Canvas({ tool, elements, setElements }: Props) {
     }, []);
     useEffect(() => {
         bounding.tools(tool);
+        console.log(tool);
     }, [tool]);
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -47,6 +53,7 @@ function Canvas({ tool, elements, setElements }: Props) {
 
     return (
         <StyledWrap>
+            {tool === "bounding" && <DropDown category={category} setCategory={setCategory} categoryList={categoryList} />}
             <StyledCanvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}></StyledCanvas>
         </StyledWrap>
     );

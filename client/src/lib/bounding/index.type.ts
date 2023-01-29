@@ -7,4 +7,9 @@ interface IElements {
     position?: string | null;
 }
 
-export type { IElements };
+interface ICategory {
+    title: string;
+    color: string;
+}
+
+export type { IElements, ICategory };

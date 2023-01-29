@@ -110,7 +110,7 @@ class Bounding {
                 }
                 // if (this.selectedElement) {
                 //     if (this.positionWithinElement(offsetX, offsetY, this.selectedElement)) {
-                //         return;
+                //         console.log(this.positionWithinElement(offsetX, offsetY, this.selectedElement));
                 //     }
                 // } // 현재 선택중인 element 있으면 선택된거 이동
                 this.selectedElement = element;
@@ -184,6 +184,7 @@ class Bounding {
         const { offsetX, offsetY } = e.nativeEvent;
         if (this.tool === "bounding") {
             if (Math.abs(this.sX - offsetX) < 5 && Math.abs(this.sY - offsetY) < 5) return;
+            if (this.action !== "drawing") return;
             const element = this.createElement(this.elements.length, this.sX, this.sY, offsetX, offsetY);
             const adjustElement = this.adjustElementCoordinates(element);
             this.elements = [...this.elements, adjustElement];
