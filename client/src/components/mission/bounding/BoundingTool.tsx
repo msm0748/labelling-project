@@ -67,7 +67,6 @@ const StyledButton = styled.button<{ text: string }>`
 `;
 
 function Tool({ tool, setTool }: Props) {
-    console.log("tool");
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             switch (e.code) {

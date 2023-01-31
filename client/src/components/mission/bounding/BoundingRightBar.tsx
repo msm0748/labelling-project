@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import styled from "styled-components";
 import { IElements, ICategory } from "./index.type";
 import ColorPointItem from "../../common/category/ColorPointItem";
@@ -10,6 +10,8 @@ interface Props {
     categoryList: ICategory[];
     tool: "select" | "move" | "bounding";
     setTool: Dispatch<SetStateAction<"select" | "move" | "bounding">>;
+    selectedElement: IElements | null;
+    setSelectedElement: Dispatch<SetStateAction<IElements | null>>;
 }
 
 const StyledWrap = styled.section`
@@ -27,6 +29,7 @@ const StyledElementsListWrap = styled.div`
 
 const StyledItem = styled.li`
     display: flex;
+    justify-content: space-between;
     align-items: center;
     padding: 15px;
     cursor: pointer;
@@ -53,31 +56,68 @@ const StyledCategoryTitle = styled.div`
     background: rgb(235, 236, 239);
 `;
 
-function RightBar({ elements, setElements, categoryList, tool, setTool }: Props) {
+const StyledBlock = styled.div`
+    display: flex;
+    align-items: center;
+`;
+
+const StyledSvgBlock = styled.div`
+    &:hover svg {
+        fill: rgb(12, 95, 219);
+    }
+`;
+
+function RightBar({ elements, setElements, categoryList, tool, setTool, selectedElement, setSelectedElement }: Props) {
     const [category, setCategory] = useState<ICategory>(categoryList[0]);
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const handleActive = (index: number, { title, color }: ICategory) => {
-        setActiveIndex(index);
+    const handleActive = (element: IElements) => {
+        const { title, color } = element;
         setCategory({ title, color });
         setTool("select");
+        setSelectedElement(element);
     };
-    useEffect(() => {
-        if (tool !== "select") {
-            setActiveIndex(null);
-        }
-    }, [tool]);
+    const handleDeleteElement = (id: number) => {
+        setElements(elements.filter((element) => element.id !== id));
+    };
+
     return (
         <StyledWrap>
             <StyledElementsListWrap>
                 <ul>
-                    {elements.map((item, index) => (
-                        <StyledItem key={index} className={activeIndex === index ? "active" : ""} onClick={() => handleActive(index, item)}>
-                            <ColorPointItem color={item.color} title={item.title} />
+                    {elements.map((element) => (
+                        <StyledItem key={element.id} className={selectedElement?.id === element.id ? "active" : ""} onClick={() => handleActive(element)}>
+                            <StyledBlock>
+                                <ColorPointItem color={element.color} title={element.title} />
+                            </StyledBlock>
+                            <StyledSvgBlock onClick={() => handleDeleteElement(element.id)}>
+                                <svg width="16" height="16" fill="rgba(26,26,26,0.8)" xmlns="http://www.w3.org/2000/svg" fillOpacity="1" viewBox="0 0 96 96">
+                                    <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="m23.992 26.778 3.725 50.296a1 1 0 0 0 .998.926h38.57a1 1 0 0 0 .998-.926l3.725-50.296 5.984.444-3.726 50.295A7 7 0 0 1 67.286 84H28.714a7 7 0 0 1-6.981-6.483l-3.726-50.295 5.984-.444Z"
+                                        fill="current"
+                                        fillOpacity="current"
+                                    ></path>
+                                    <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="M12 27a3 3 0 0 1 3-3h66a3 3 0 1 1 0 6H15a3 3 0 0 1-3-3ZM34.74 43.011a3 3 0 0 1 3.249 2.73l2 23a3 3 0 1 1-5.978.519l-2-23a3 3 0 0 1 2.73-3.249ZM45 69V46a3 3 0 1 1 6 0v23a3 3 0 1 1-6 0ZM58.74 71.989a3 3 0 0 1-2.729-3.249l2-23a3 3 0 1 1 5.978.52l-2 23a3 3 0 0 1-3.249 2.729Z"
+                                        fill="current"
+                                        fillOpacity="current"
+                                    ></path>
+                                    <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="M38.389 18a1 1 0 0 0-.987.836l-1.443 8.657-5.918-.986 1.443-8.658A7 7 0 0 1 38.388 12h19.224a7 7 0 0 1 6.904 5.85l1.443 8.657-5.918.986-1.443-8.657a1 1 0 0 0-.986-.836H38.388Z"
+                                        fill="current"
+                                        fillOpacity="current"
+                                    ></path>
+                                </svg>
+                            </StyledSvgBlock>
                         </StyledItem>
                     ))}
                 </ul>
             </StyledElementsListWrap>
-            {activeIndex !== null && category && (
+            {selectedElement !== null && category && (
                 <StyledCategoryWrap>
                     <StyledCategoryTitle>카테고리</StyledCategoryTitle>
                     <StyledDropDownWrap>

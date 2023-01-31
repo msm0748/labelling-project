@@ -46,12 +46,10 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         setCtx(context);
     }, []);
 
-    console.log("렌더링");
-
     const reRender = useCallback(() => {
         const canvas = canvasRef.current!;
         ctx?.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-        elements.forEach(({ sX, sY, cX, cY, color }, index) => {
+        elements.forEach(({ id, sX, sY, cX, cY, color }) => {
             // 기존 strokeRect는 보존하되 잔상 제거
             const resizePointRect = resizePoint + 3; // +3 미세 조절
             const width = cX - sX;
@@ -62,7 +60,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             ctx?.strokeRect(sX, sY, width, height);
             if (selectedElement) {
                 // 현재 선택중인 rect 색상 변경
-                if (index === selectedElement.id) {
+                if (id === selectedElement.id) {
                     ctx!.strokeStyle = selectedElement.color;
                     ctx!.fillStyle = "white";
                     ctx?.strokeRect(sX, sY, width, height);
@@ -118,6 +116,17 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         const maxY = Math.max(sY, cY);
         return { sX: minX, sY: minY, cX: maxX, cY: maxY, ...rest };
     }, []);
+
+    const updateElement = (id: number, sX: number, sY: number, cX: number, cY: number, color: string, title: string) => {
+        const updateElement = createElement(id, sX, sY, cX, cY, color, title);
+        const adjustElement = adjustElementCoordinates(updateElement);
+
+        const elementsCopy = [...elements];
+        const findIndex = elementsCopy.findIndex((element) => element.id === id);
+
+        elementsCopy[findIndex] = adjustElement;
+        setElements(elementsCopy);
+    };
 
     const nearPoint = useCallback((offsetX: number, offsetY: number, x: number, y: number, name: string, cX?: number, cY?: number) => {
         if (cX && cY) {
@@ -246,9 +255,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             }
         } else if (tool === "select") {
             const element = getElementPosition(offsetX, offsetY, elements);
-            if (canvas) {
-                canvas.style.cursor = element ? cursorForPosition(element.position!) : "default";
-            }
+            canvas.style.cursor = element ? cursorForPosition(element.position!) : "default";
 
             if (action === "moving") {
                 if (!selectedElement) return;
@@ -268,23 +275,15 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                 if (newY + height > canvas!.height) newY = canvas!.height - height;
                 //canvas 이탈 금지
 
-                const updateElement = createElement(id, newX, newY, newX + width, newY + height, color, title);
-
-                const elementsCopy = [...elements];
-                elementsCopy[id] = updateElement;
-                setElements(elementsCopy);
+                updateElement(id, newX, newY, newX + width, newY + height, color, title);
             } else if (action === "resizing") {
                 if (!selectedElement) return;
                 const { position, ...coordinates } = selectedElement;
                 const { id, color, title } = selectedElement;
                 if (!position) return;
                 const { sX, sY, cX, cY } = resizedCoordinates(offsetX, offsetY, position, coordinates);
-                const updateElement = createElement(id, sX, sY, cX, cY, color, title);
-                const adjustElement = adjustElementCoordinates(updateElement);
 
-                const elementsCopy = [...elements];
-                elementsCopy[id] = adjustElement;
-                setElements(elementsCopy);
+                updateElement(id, sX, sY, cX, cY, color, title);
             }
         }
     };
@@ -294,7 +293,8 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         if (tool === "bounding") {
             if (Math.abs(startX - offsetX) < 5 && Math.abs(startY - offsetY) < 5) return; // 마우스 클릭으로도 그릴 수 있게
             if (action !== "drawing") return;
-            const element = createElement(elements.length, startX, startY, offsetX, offsetY, category.color, category.title);
+            const timestamp = +new Date();
+            const element = createElement(timestamp, startX, startY, offsetX, offsetY, category.color, category.title);
             const adjustElement = adjustElementCoordinates(element);
             setElements((prev) => [...prev, adjustElement]);
         }
@@ -307,6 +307,10 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             setSelectedElement(null);
         }
     }, [tool, reRender, selectedElement, elements, setSelectedElement]);
+    useEffect(() => {
+        const canvas = canvasRef.current!;
+        canvas.style.cursor = "default";
+    }, [tool]);
 
     return (
         <StyledWrap>

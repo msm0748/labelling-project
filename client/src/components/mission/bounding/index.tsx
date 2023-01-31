@@ -37,7 +37,15 @@ function BoundingComponent() {
                 selectedElement={selectedElement}
                 setSelectedElement={setSelectedElement}
             ></Canvas>
-            <RightBar elements={elements} setElements={setElements} categoryList={categoryList} tool={tool} setTool={setTool}></RightBar>
+            <RightBar
+                elements={elements}
+                setElements={setElements}
+                categoryList={categoryList}
+                tool={tool}
+                setTool={setTool}
+                selectedElement={selectedElement}
+                setSelectedElement={setSelectedElement}
+            ></RightBar>
         </StyledWrap>
     );
 }
