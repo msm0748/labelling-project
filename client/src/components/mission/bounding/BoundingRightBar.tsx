@@ -1,15 +1,15 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import styled from "styled-components";
-import { IElements, ICategory } from "../../../lib/bounding/index.type";
+import { IElements, ICategory } from "./index.type";
 import ColorPointItem from "../../common/category/ColorPointItem";
 import DropDown from "../../common/category";
-import Bounding from "../../../lib/bounding";
 
 interface Props {
     elements: IElements[];
     setElements: Dispatch<SetStateAction<IElements[]>>;
     categoryList: ICategory[];
-    bounding: Bounding;
+    tool: "select" | "move" | "bounding";
+    setTool: Dispatch<SetStateAction<"select" | "move" | "bounding">>;
 }
 
 const StyledWrap = styled.section`
@@ -53,36 +53,38 @@ const StyledCategoryTitle = styled.div`
     background: rgb(235, 236, 239);
 `;
 
-function RightBar({ elements, setElements, categoryList, bounding }: Props) {
+function RightBar({ elements, setElements, categoryList, tool, setTool }: Props) {
     const [category, setCategory] = useState<ICategory>(categoryList[0]);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const handleActive = (index: number, { categoryTitle, categoryColor }: ICategory) => {
+    const handleActive = (index: number, { title, color }: ICategory) => {
         setActiveIndex(index);
-        setCategory({ categoryTitle, categoryColor });
+        setCategory({ title, color });
+        setTool("select");
     };
     useEffect(() => {
-        bounding.setCategory(activeIndex, category);
-        setElements(bounding.elements);
-    }, [bounding, category, activeIndex, setElements]);
+        if (tool !== "select") {
+            setActiveIndex(null);
+        }
+    }, [tool]);
     return (
         <StyledWrap>
             <StyledElementsListWrap>
                 <ul>
                     {elements.map((item, index) => (
                         <StyledItem key={index} className={activeIndex === index ? "active" : ""} onClick={() => handleActive(index, item)}>
-                            <ColorPointItem categoryColor={item.categoryColor} categoryTitle={item.categoryTitle} />
+                            <ColorPointItem color={item.color} title={item.title} />
                         </StyledItem>
                     ))}
                 </ul>
             </StyledElementsListWrap>
-            <StyledCategoryWrap>
-                <StyledCategoryTitle>카테고리</StyledCategoryTitle>
-                {activeIndex !== null && category && (
+            {activeIndex !== null && category && (
+                <StyledCategoryWrap>
+                    <StyledCategoryTitle>카테고리</StyledCategoryTitle>
                     <StyledDropDownWrap>
                         <DropDown category={category} setCategory={setCategory} categoryList={categoryList} />
                     </StyledDropDownWrap>
-                )}
-            </StyledCategoryWrap>
+                </StyledCategoryWrap>
+            )}
         </StyledWrap>
     );
 }

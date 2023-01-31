@@ -1,11 +1,11 @@
 import StyledColorPoint from "./StyledColorPoint";
-import { ICategory } from "../../../lib/bounding/index.type";
+import { ICategory } from "../../mission/bounding/index.type";
 
-function StyledCategoryItem({ categoryTitle, categoryColor }: ICategory) {
+function StyledCategoryItem({ title, color }: ICategory) {
     return (
         <>
-            <StyledColorPoint color={categoryColor} />
-            <div>{categoryTitle}</div>
+            <StyledColorPoint color={color} />
+            <div>{title}</div>
         </>
     );
 }

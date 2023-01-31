@@ -3,8 +3,7 @@ import styled from "styled-components";
 import Canvas from "./BoundingCanvas";
 import Tool from "./BoundingTool";
 import RightBar from "./BoundingRightBar";
-import { IElements } from "../../../lib/bounding/index.type";
-import Bounding from "../../../lib/bounding/index";
+import { IElements } from "./index.type";
 
 const StyledWrap = styled.div`
     display: flex;
@@ -14,25 +13,31 @@ const StyledWrap = styled.div`
 
 const categoryList = [
     {
-        categoryTitle: "선수",
-        categoryColor: "rgb(0, 192, 108)",
+        title: "선수",
+        color: "rgb(0, 192, 108)",
     },
     {
-        categoryTitle: "심판",
-        categoryColor: "rgb(255, 91, 208)",
+        title: "심판",
+        color: "rgb(255, 91, 208)",
     },
 ];
-
-const bounding = new Bounding();
 
 function BoundingComponent() {
     const [tool, setTool] = useState<"select" | "move" | "bounding">("select");
     const [elements, setElements] = useState<IElements[]>([]);
+    const [selectedElement, setSelectedElement] = useState<IElements | null>(null);
     return (
         <StyledWrap>
             <Tool tool={tool} setTool={setTool} />
-            <Canvas tool={tool} elements={elements} setElements={setElements} categoryList={categoryList} bounding={bounding}></Canvas>
-            <RightBar elements={elements} setElements={setElements} categoryList={categoryList} bounding={bounding}></RightBar>
+            <Canvas
+                tool={tool}
+                elements={elements}
+                setElements={setElements}
+                categoryList={categoryList}
+                selectedElement={selectedElement}
+                setSelectedElement={setSelectedElement}
+            ></Canvas>
+            <RightBar elements={elements} setElements={setElements} categoryList={categoryList} tool={tool} setTool={setTool}></RightBar>
         </StyledWrap>
     );
 }

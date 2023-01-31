@@ -8,8 +8,8 @@ interface IElements extends ICategory {
 }
 
 interface ICategory {
-    categoryTitle: string;
-    categoryColor: string;
+    color: string;
+    title: string;
 }
 
 export type { IElements, ICategory };
