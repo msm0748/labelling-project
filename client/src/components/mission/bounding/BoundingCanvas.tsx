@@ -55,13 +55,13 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             const width = cX - sX;
             const height = cY - sY;
             ctx?.setLineDash([]);
-            ctx!.globalAlpha = 1;
+            // ctx!.globalAlpha = 1;
             ctx!.strokeStyle = color;
+            ctx!.lineWidth = 2;
             ctx?.strokeRect(sX, sY, width, height);
             if (selectedElement) {
                 // 현재 선택중인 rect 색상 변경
                 if (id === selectedElement.id) {
-                    ctx!.strokeStyle = selectedElement.color;
                     ctx!.fillStyle = "white";
                     ctx?.strokeRect(sX, sY, width, height);
 
@@ -86,6 +86,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             const canvas = canvasRef.current!;
             if (tool !== "bounding") return;
             ctx?.setLineDash([2, 5]);
+            ctx!.lineWidth = 1;
             ctx!.globalAlpha = 1;
             ctx!.strokeStyle = "black";
             ctx?.beginPath();
@@ -121,10 +122,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         const updateElement = createElement(id, sX, sY, cX, cY, color, title);
         const adjustElement = adjustElementCoordinates(updateElement);
 
-        const elementsCopy = [...elements];
-        const findIndex = elementsCopy.findIndex((element) => element.id === id);
-
-        elementsCopy[findIndex] = adjustElement;
+        const elementsCopy = [...elements].map((element) => (element.id === id ? adjustElement : element));
         setElements(elementsCopy);
     };
 
@@ -244,12 +242,13 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         const { startX, startY } = startPosition;
         const canvas = canvasRef.current!;
         reRender();
-        crosshair(offsetX, offsetY);
+
         if (tool === "bounding") {
             if (action === "drawing") {
                 const width = offsetX - startX;
                 const height = offsetY - startY;
                 ctx?.setLineDash([]);
+                ctx!.lineWidth = 2;
                 ctx!.strokeStyle = category.color;
                 ctx?.strokeRect(startX, startY, width, height);
             }
@@ -286,6 +285,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                 updateElement(id, sX, sY, cX, cY, color, title);
             }
         }
+        crosshair(offsetX, offsetY);
     };
     const handleMouseUp = (e: MouseEvent) => {
         const { offsetX, offsetY } = e.nativeEvent;
@@ -306,7 +306,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         if (tool === "bounding") {
             setSelectedElement(null);
         }
-    }, [tool, reRender, selectedElement, elements, setSelectedElement]);
+    }, [tool, reRender, setSelectedElement]);
     useEffect(() => {
         const canvas = canvasRef.current!;
         canvas.style.cursor = "default";

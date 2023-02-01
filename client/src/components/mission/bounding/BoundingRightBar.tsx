@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, MouseEvent } from "react";
 import styled from "styled-components";
 import { IElements, ICategory } from "./index.type";
 import ColorPointItem from "../../common/category/ColorPointItem";
@@ -75,9 +75,23 @@ function RightBar({ elements, setElements, categoryList, tool, setTool, selected
         setTool("select");
         setSelectedElement(element);
     };
-    const handleDeleteElement = (id: number) => {
-        setElements(elements.filter((element) => element.id !== id));
+    const handleDeleteElement = (e: MouseEvent, id: number) => {
+        e.stopPropagation();
+        setElements((elements) => elements.filter((element) => element.id !== id));
+        setSelectedElement(null);
     };
+
+    useEffect(() => {
+        if (!selectedElement) return;
+        setElements((elements) =>
+            elements.map((element) => (element.id === selectedElement.id ? { ...element, color: category.color, title: category.title } : element))
+        );
+    }, [category, selectedElement, setElements]);
+
+    useEffect(() => {
+        if (!selectedElement) return;
+        setCategory({ title: selectedElement.title, color: selectedElement.color });
+    }, [selectedElement]);
 
     return (
         <StyledWrap>
@@ -88,7 +102,7 @@ function RightBar({ elements, setElements, categoryList, tool, setTool, selected
                             <StyledBlock>
                                 <ColorPointItem color={element.color} title={element.title} />
                             </StyledBlock>
-                            <StyledSvgBlock onClick={() => handleDeleteElement(element.id)}>
+                            <StyledSvgBlock onClick={(e) => handleDeleteElement(e, element.id)}>
                                 <svg width="16" height="16" fill="rgba(26,26,26,0.8)" xmlns="http://www.w3.org/2000/svg" fillOpacity="1" viewBox="0 0 96 96">
                                     <path
                                         fillRule="evenodd"
@@ -117,7 +131,7 @@ function RightBar({ elements, setElements, categoryList, tool, setTool, selected
                     ))}
                 </ul>
             </StyledElementsListWrap>
-            {selectedElement !== null && category && (
+            {selectedElement !== null && (
                 <StyledCategoryWrap>
                     <StyledCategoryTitle>카테고리</StyledCategoryTitle>
                     <StyledDropDownWrap>
