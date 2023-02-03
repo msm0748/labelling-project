@@ -162,13 +162,26 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
     );
 
     const getElementPosition = useCallback(
-        (cX: number, cY: number, elements: IElements[]) => {
-            const elementsCopy = [...elements].reverse(); // 마지막 rect 값 가져옴
+        (offsetX: number, offsetY: number, elements: IElements[]) => {
+            let elementsCopy = [...elements];
+            if (selectedElement) {
+                // 현재 selectedElement가 있으면 1순위로 수정되게끔
+                const selectedElementCopy = elementsCopy.find((element) => element.id === selectedElement.id); // 최신 selectedElement값 가져오기 위한 복사(마우스 움직일때 selectedElement는 최신값이 아님)
+                elementsCopy = elementsCopy.filter((element) => element.id !== selectedElement.id); //현재 selectedElement값을 없애고 밑에서 최신 selectedElement를 넣어줌
+                if (selectedElementCopy) {
+                    elementsCopy = [selectedElementCopy, ...elementsCopy]; //
+                    return elementsCopy
+                        .map((element) => ({ ...element, position: positionWithinElement(offsetX, offsetY, element) }))
+                        .find((element) => element.position !== null);
+                }
+            }
+
             return elementsCopy
-                .map((element) => ({ ...element, position: positionWithinElement(cX, cY, element) }))
-                .find((element) => element.position !== null);
+                .reverse()
+                .map((element) => ({ ...element, position: positionWithinElement(offsetX, offsetY, element) }))
+                .find((element) => element.position !== null); // selectedElement 가 없으면 마지막 rect 값 가져옴
         },
-        [positionWithinElement]
+        [positionWithinElement, selectedElement]
     );
 
     const cursorForPosition = useCallback((position: string) => {
@@ -297,7 +310,15 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
             const element = createElement(timestamp, startX, startY, offsetX, offsetY, category.color, category.title);
             const adjustElement = adjustElementCoordinates(element);
             setElements((prev) => [...prev, adjustElement]);
+        } else if (tool === "select") {
+            if (selectedElement) {
+                const updateSelectedElement = [...elements].find((element) => element.id === selectedElement.id);
+                if (updateSelectedElement) {
+                    setSelectedElement(updateSelectedElement);
+                }
+            }
         }
+
         setAction("none");
     };
 
