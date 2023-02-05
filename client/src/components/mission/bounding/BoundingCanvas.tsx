@@ -2,6 +2,7 @@ import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction, useState, useC
 import styled from "styled-components";
 import DropDown from "../../common/category";
 import { IElements, ICategory } from "./index.type";
+import ImgCanvas from "./BoundingImgCanvas";
 
 interface Props {
     tool: "select" | "move" | "bounding";
@@ -26,7 +27,101 @@ const StyledWrap = styled.section`
 const StyledCanvas = styled.canvas`
     width: 100%;
     height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
 `;
+
+const resizePoint = 9;
+
+const createElement = (id: number, sX: number, sY: number, cX: number, cY: number, color: string, title: string) => {
+    return { id, sX, sY, cX, cY, color, title };
+};
+
+const adjustElementCoordinates = (element: IElements) => {
+    //오른쪽에서 왼쪽으로 그릴때 좌표값 제대로  잡아주기
+    const { sX, sY, cX, cY, ...rest } = element;
+    const minX = Math.min(sX, cX);
+    const maxX = Math.max(sX, cX);
+    const minY = Math.min(sY, cY);
+    const maxY = Math.max(sY, cY);
+    return { sX: minX, sY: minY, cX: maxX, cY: maxY, ...rest };
+};
+
+const nearPoint = (offsetX: number, offsetY: number, x: number, y: number, name: string, cX?: number, cY?: number) => {
+    if (cX && cY) {
+        switch (name) {
+            case "t":
+            case "b":
+                return x < offsetX && cX > offsetX && Math.abs(offsetY - y) < resizePoint ? name : null;
+            case "l":
+            case "r":
+                return y < offsetY && cY > offsetY && Math.abs(offsetX - x) < resizePoint ? name : null;
+        }
+    } else {
+        return Math.abs(offsetX - x) < resizePoint && Math.abs(offsetY - y) < resizePoint ? name : null;
+    }
+};
+
+const positionWithinElement = (offsetX: number, offsetY: number, element: IElements) => {
+    const { sX, sY, cX, cY } = element;
+    const topLeft = nearPoint(offsetX, offsetY, sX, sY, "tl");
+    const topRight = nearPoint(offsetX, offsetY, cX, sY, "tr");
+    const bottomLeft = nearPoint(offsetX, offsetY, sX, cY, "bl");
+    const bottomRight = nearPoint(offsetX, offsetY, cX, cY, "br");
+
+    const top = nearPoint(offsetX, offsetY, sX, sY, "t", cX, cY);
+    const bottom = nearPoint(offsetX, offsetY, sX, cY, "b", cX, cY);
+    const right = nearPoint(offsetX, offsetY, cX, sY, "r", cX, cY);
+    const left = nearPoint(offsetX, offsetY, sX, sY, "l", cX, cY);
+
+    const inside = offsetX >= sX && offsetX <= cX && offsetY >= sY && offsetY <= cY ? "inside" : null;
+
+    return topLeft || topRight || bottomLeft || bottomRight || top || right || bottom || left || inside;
+};
+
+const cursorForPosition = (position: string) => {
+    switch (position) {
+        case "tl":
+        case "br":
+            return "nwse-resize";
+        case "tr":
+        case "bl":
+            return "nesw-resize";
+        case "t":
+        case "b":
+            return "row-resize";
+        case "l":
+        case "r":
+            return "col-resize";
+        default:
+            return "move";
+    }
+};
+
+const resizedCoordinates = (offsetX: number, offsetY: number, position: string, coordinates: IElements) => {
+    const { sX, sY, cX, cY } = coordinates;
+    switch (position) {
+        case "tl":
+            return { sX: offsetX, sY: offsetY, cX, cY };
+        case "tr":
+            return { sX, sY: offsetY, cX: offsetX, cY };
+        case "br":
+            return { sX, sY, cX: offsetX, cY: offsetY };
+        case "bl":
+            return { sX: offsetX, sY, cX, cY: offsetY };
+        case "b":
+            return { sX, sY, cX, cY: offsetY };
+        case "t":
+            return { sX, sY: offsetY, cX, cY };
+        case "r":
+            return { sX, sY, cX: offsetX, cY };
+        case "l":
+            return { sX: offsetX, sY, cX, cY };
+        default:
+            return { sX, sY, cX, cY };
+    }
+};
 
 function Canvas({ tool, elements, setElements, categoryList, selectedElement, setSelectedElement }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,15 +129,18 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
     const [category, setCategory] = useState<ICategory>(categoryList[0]);
     const [startPosition, setStartPosition] = useState<IStartPosition>({ startX: 0, startY: 0 });
     const [action, setAction] = useState<"none" | "moving" | "drawing" | "resizing">("none");
-
-    const resizePoint = 9;
+    const canvasSizeRef = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const canvas = canvasRef.current!;
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
 
+        canvasSizeRef.current.x = canvas.offsetWidth;
+        canvasSizeRef.current.y = canvas.offsetHeight;
+
         const context = canvas.getContext("2d");
+
         setCtx(context);
     }, []);
 
@@ -104,20 +202,6 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         [ctx, tool]
     );
 
-    const createElement = useCallback((id: number, sX: number, sY: number, cX: number, cY: number, color: string, title: string) => {
-        return { id, sX, sY, cX, cY, color, title };
-    }, []);
-
-    const adjustElementCoordinates = useCallback((element: IElements) => {
-        //오른쪽에서 왼쪽으로 그릴때 좌표값 제대로  잡아주기
-        const { sX, sY, cX, cY, ...rest } = element;
-        const minX = Math.min(sX, cX);
-        const maxX = Math.max(sX, cX);
-        const minY = Math.min(sY, cY);
-        const maxY = Math.max(sY, cY);
-        return { sX: minX, sY: minY, cX: maxX, cY: maxY, ...rest };
-    }, []);
-
     const updateElement = (id: number, sX: number, sY: number, cX: number, cY: number, color: string, title: string) => {
         const updateElement = createElement(id, sX, sY, cX, cY, color, title);
         const adjustElement = adjustElementCoordinates(updateElement);
@@ -125,41 +209,6 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         const elementsCopy = [...elements].map((element) => (element.id === id ? adjustElement : element));
         setElements(elementsCopy);
     };
-
-    const nearPoint = useCallback((offsetX: number, offsetY: number, x: number, y: number, name: string, cX?: number, cY?: number) => {
-        if (cX && cY) {
-            switch (name) {
-                case "t":
-                case "b":
-                    return x < offsetX && cX > offsetX && Math.abs(offsetY - y) < resizePoint ? name : null;
-                case "l":
-                case "r":
-                    return y < offsetY && cY > offsetY && Math.abs(offsetX - x) < resizePoint ? name : null;
-            }
-        } else {
-            return Math.abs(offsetX - x) < resizePoint && Math.abs(offsetY - y) < resizePoint ? name : null;
-        }
-    }, []);
-
-    const positionWithinElement = useCallback(
-        (offsetX: number, offsetY: number, element: IElements) => {
-            const { sX, sY, cX, cY } = element;
-            const topLeft = nearPoint(offsetX, offsetY, sX, sY, "tl");
-            const topRight = nearPoint(offsetX, offsetY, cX, sY, "tr");
-            const bottomLeft = nearPoint(offsetX, offsetY, sX, cY, "bl");
-            const bottomRight = nearPoint(offsetX, offsetY, cX, cY, "br");
-
-            const top = nearPoint(offsetX, offsetY, sX, sY, "t", cX, cY);
-            const bottom = nearPoint(offsetX, offsetY, sX, cY, "b", cX, cY);
-            const right = nearPoint(offsetX, offsetY, cX, sY, "r", cX, cY);
-            const left = nearPoint(offsetX, offsetY, sX, sY, "l", cX, cY);
-
-            const inside = offsetX >= sX && offsetX <= cX && offsetY >= sY && offsetY <= cY ? "inside" : null;
-
-            return topLeft || topRight || bottomLeft || bottomRight || top || right || bottom || left || inside;
-        },
-        [nearPoint]
-    );
 
     const getElementPosition = useCallback(
         (offsetX: number, offsetY: number, elements: IElements[]) => {
@@ -181,51 +230,8 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                 .map((element) => ({ ...element, position: positionWithinElement(offsetX, offsetY, element) }))
                 .find((element) => element.position !== null); // selectedElement 가 없으면 마지막 rect 값 가져옴
         },
-        [positionWithinElement, selectedElement]
+        [selectedElement]
     );
-
-    const cursorForPosition = useCallback((position: string) => {
-        switch (position) {
-            case "tl":
-            case "br":
-                return "nwse-resize";
-            case "tr":
-            case "bl":
-                return "nesw-resize";
-            case "t":
-            case "b":
-                return "row-resize";
-            case "l":
-            case "r":
-                return "col-resize";
-            default:
-                return "move";
-        }
-    }, []);
-
-    const resizedCoordinates = useCallback((offsetX: number, offsetY: number, position: string, coordinates: IElements) => {
-        const { sX, sY, cX, cY } = coordinates;
-        switch (position) {
-            case "tl":
-                return { sX: offsetX, sY: offsetY, cX, cY };
-            case "tr":
-                return { sX, sY: offsetY, cX: offsetX, cY };
-            case "br":
-                return { sX, sY, cX: offsetX, cY: offsetY };
-            case "bl":
-                return { sX: offsetX, sY, cX, cY: offsetY };
-            case "b":
-                return { sX, sY, cX, cY: offsetY };
-            case "t":
-                return { sX, sY: offsetY, cX, cY };
-            case "r":
-                return { sX, sY, cX: offsetX, cY };
-            case "l":
-                return { sX: offsetX, sY, cX, cY };
-            default:
-                return { sX, sY, cX, cY };
-        }
-    }, []);
 
     const handleMouseDown = (e: MouseEvent) => {
         const { offsetX, offsetY } = e.nativeEvent;
@@ -336,6 +342,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
     return (
         <StyledWrap>
             {tool === "bounding" && <DropDown category={category} setCategory={setCategory} categoryList={categoryList} isAbsolute={true} />}
+            <ImgCanvas canvasWidth={canvasSizeRef.current.x} canvasHeight={canvasSizeRef.current.y} />
             <StyledCanvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}></StyledCanvas>
         </StyledWrap>
     );

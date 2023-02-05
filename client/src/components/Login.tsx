@@ -1,7 +1,7 @@
 import styled from "styled-components";
-import naverImg from "../assets/images/naver.png";
-import kakaoImg from "../assets/images/kakao.png";
-import googleImg from "../assets/images/google.png";
+import naverImg from "../assets/images/logo/naver.png";
+import kakaoImg from "../assets/images/logo/kakao.png";
+import googleImg from "../assets/images/logo/google.png";
 import auth from "../lib/firebase";
 import Wrap from "../components/common/Wrap";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
