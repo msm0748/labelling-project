@@ -4,7 +4,12 @@ interface IElements extends ICategory {
     sY: number;
     cX: number;
     cY: number;
+}
+
+interface ISelectedElement extends IElements {
     position?: string | null;
+    startX?: number;
+    startY?: number;
 }
 
 interface ICategory {
@@ -12,4 +17,4 @@ interface ICategory {
     title: string;
 }
 
-export type { IElements, ICategory };
+export type { IElements, ICategory, ISelectedElement };

@@ -8,7 +8,7 @@ const StyledCanvas = styled.canvas`
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 5;
+    /* z-index: 5; */
 `;
 
 type CanvasProps = {
@@ -43,6 +43,7 @@ image.src = testImg;
 function ImgCanvas(props: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
+
     const [isDraw, setIsDraw] = useState(false);
     const [scale, setScale] = useState<number>(1);
     const [offset, setOffset] = useState<Point>(ORIGIN);

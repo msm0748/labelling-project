@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useState, MouseEvent } from "react";
 import styled from "styled-components";
-import { IElements, ICategory } from "./index.type";
+import { IElements, ICategory, ISelectedElement } from "./index.type";
 import ColorPointItem from "../../common/category/ColorPointItem";
 import DropDown from "../../common/category";
 
@@ -10,8 +10,8 @@ interface Props {
     categoryList: ICategory[];
     tool: "select" | "move" | "bounding";
     setTool: Dispatch<SetStateAction<"select" | "move" | "bounding">>;
-    selectedElement: IElements | null;
-    setSelectedElement: Dispatch<SetStateAction<IElements | null>>;
+    selectedElement: ISelectedElement | null;
+    setSelectedElement: Dispatch<SetStateAction<ISelectedElement | null>>;
 }
 
 const StyledWrap = styled.section`

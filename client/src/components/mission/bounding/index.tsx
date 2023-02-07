@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Canvas from "./BoundingCanvas";
 import Tool from "./BoundingTool";
 import RightBar from "./BoundingRightBar";
-import { IElements } from "./index.type";
+import { IElements, ISelectedElement } from "./index.type";
 
 const StyledWrap = styled.div`
     display: flex;
@@ -25,7 +25,7 @@ const categoryList = [
 function BoundingComponent() {
     const [tool, setTool] = useState<"select" | "move" | "bounding">("select");
     const [elements, setElements] = useState<IElements[]>([]);
-    const [selectedElement, setSelectedElement] = useState<IElements | null>(null);
+    const [selectedElement, setSelectedElement] = useState<ISelectedElement | null>(null);
     return (
         <StyledWrap>
             <Tool tool={tool} setTool={setTool} />
