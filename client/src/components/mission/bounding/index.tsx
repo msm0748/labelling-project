@@ -13,11 +13,11 @@ const StyledWrap = styled.div`
 
 const categoryList = [
     {
-        title: "선수",
+        title: "강아지",
         color: "rgb(0, 192, 108)",
     },
     {
-        title: "심판",
+        title: "고양이",
         color: "rgb(255, 91, 208)",
     },
 ];
@@ -26,11 +26,14 @@ function BoundingComponent() {
     const [tool, setTool] = useState<"select" | "move" | "bounding">("select");
     const [elements, setElements] = useState<IElements[]>([]);
     const [selectedElement, setSelectedElement] = useState<ISelectedElement | null>(null);
+    const [isReset, setIsReset] = useState<boolean>(false);
     return (
         <StyledWrap>
-            <Tool tool={tool} setTool={setTool} />
+            <Tool tool={tool} setTool={setTool} setIsReset={setIsReset} />
             <Canvas
                 tool={tool}
+                isReset={isReset}
+                setIsReset={setIsReset}
                 elements={elements}
                 setElements={setElements}
                 categoryList={categoryList}

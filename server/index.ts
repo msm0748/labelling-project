@@ -212,6 +212,8 @@ app.post("/oauth/naver", async (req, res) => {
     });
 });
 
+console.log(port);
+
 app.listen(port, () => {
     console.log("server is running!");
 });

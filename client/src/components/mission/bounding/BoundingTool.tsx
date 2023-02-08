@@ -4,6 +4,7 @@ import styled from "styled-components";
 interface Props {
     tool: "select" | "move" | "bounding";
     setTool: Dispatch<SetStateAction<"select" | "move" | "bounding">>;
+    setIsReset: Dispatch<SetStateAction<boolean>>;
 }
 
 const StyledWrap = styled.section`
@@ -66,26 +67,19 @@ const StyledButton = styled.button<{ text: string }>`
     }
 `;
 
-function Tool({ tool, setTool }: Props) {
+function Tool({ tool, setTool, setIsReset }: Props) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            switch (e.code) {
-                case "KeyV":
-                    setTool("select");
-                    break;
-                case "KeyM":
-                    setTool("move");
-                    break;
-                case "KeyB":
-                    setTool("bounding");
-                    break;
-            }
+            if (e.code === "KeyV") setTool("select");
+            if (e.code === "KeyM") setTool("move");
+            if (e.code === "KeyB") setTool("bounding");
+            if (e.shiftKey && e.code === "Digit1") setIsReset(true);
         };
         document.addEventListener("keydown", handleKeyDown);
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [setTool]);
+    }, [setTool, setIsReset]);
     return (
         <StyledWrap>
             <StyledList line={3}>
@@ -167,7 +161,7 @@ function Tool({ tool, setTool }: Props) {
                     </StyledButton>
                 </StyledItem>
                 <StyledItem>
-                    <StyledButton text="화면 기본 크기 Shift + 1">
+                    <StyledButton text="화면 기본 크기 Shift + 1" onClick={() => setIsReset(true)}>
                         <svg width="24" height="24" fill="rgba(26,26,26,0.8)" fillOpacity="1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
                             <path
                                 fillRule="evenodd"

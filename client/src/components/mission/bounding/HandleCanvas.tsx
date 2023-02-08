@@ -1,4 +1,4 @@
-import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction, useState, useCallback, WheelEvent } from "react";
+import { MouseEvent, useRef, useEffect, Dispatch, SetStateAction, useState, useCallback } from "react";
 import styled from "styled-components";
 import { IElements, ICategory, ISelectedElement } from "./index.type";
 
@@ -9,12 +9,12 @@ interface Props {
     selectedElement: ISelectedElement | null;
     setSelectedElement: Dispatch<SetStateAction<ISelectedElement | null>>;
     category: ICategory;
-    handleImgWheel: (event: WheelEvent) => void;
+    handleImgWheel: (event: React.WheelEvent) => void;
     handleImgMouseDown: (event: MouseEvent) => void;
     handleImgMouseMove: (event: MouseEvent) => void;
-    handleImgMouseUp: (event: MouseEvent) => void;
     viewportTopLeft: Point;
-    offsetPos: Point;
+    handleUpdateMouse: (event: MouseEvent) => void;
+    scale: number;
 }
 
 type Point = {
@@ -127,15 +127,15 @@ function HandleCanvas({
     handleImgWheel,
     handleImgMouseDown,
     handleImgMouseMove,
-    handleImgMouseUp,
     viewportTopLeft,
-    offsetPos,
+    handleUpdateMouse,
+    scale,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
     const [action, setAction] = useState<"none" | "moving" | "drawing" | "resizing">("none");
     const [isGrabbing, setIsGrabbing] = useState(false);
-    const isSpaceDown = useRef<boolean>(false);
+    const isSpaceDownRef = useRef<boolean>(false);
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -191,8 +191,16 @@ function HandleCanvas({
         setElements(elementsCopy);
     };
 
+    const getZoomPosition = useCallback(
+        (offsetX: number, offsetY: number) => {
+            return { x: offsetX / scale + viewportTopLeft.x, y: offsetY / scale + viewportTopLeft.y };
+        },
+        [viewportTopLeft, scale]
+    );
+
     const getElementPosition = useCallback(
         (offsetX: number, offsetY: number, elements: IElements[]) => {
+            const { x, y } = getZoomPosition(offsetX, offsetY);
             let elementsCopy = [...elements];
             if (selectedElement) {
                 // 현재 selectedElement가 있으면 1순위로 수정되게끔
@@ -201,22 +209,22 @@ function HandleCanvas({
                 if (selectedElementCopy) {
                     elementsCopy = [selectedElementCopy, ...elementsCopy]; //
                     return elementsCopy
-                        .map((element) => ({ ...element, position: positionWithinElement(offsetX, offsetY, element) }))
+                        .map((element) => ({ ...element, position: positionWithinElement(x, y, element) }))
                         .find((element) => element.position !== null);
                 }
             }
 
             return elementsCopy
                 .reverse()
-                .map((element) => ({ ...element, position: positionWithinElement(offsetX, offsetY, element) }))
+                .map((element) => ({ ...element, position: positionWithinElement(x, y, element) }))
                 .find((element) => element.position !== null); // selectedElement 가 없으면 마지막 rect 값 가져옴
         },
-        [selectedElement]
+        [selectedElement, getZoomPosition]
     );
 
     const handleMouseDown = (e: MouseEvent) => {
         const { offsetX, offsetY } = e.nativeEvent;
-        if (isSpaceDown.current === true || tool === "move") {
+        if (isSpaceDownRef.current === true || tool === "move") {
             setIsGrabbing(true);
             handleImgMouseDown(e);
             canvasRef.current!.style.cursor = "grabbing";
@@ -226,7 +234,9 @@ function HandleCanvas({
             if (action !== "none") return;
             setAction("drawing");
             const id = +new Date();
-            const element = createElement(id, offsetX, offsetY, offsetX, offsetY);
+            const { x, y } = getZoomPosition(offsetX, offsetY);
+            const element = createElement(id, x, y, x, y);
+            console.log(x, y);
             setElements((prev) => [...prev, element]);
         } else if (tool === "select") {
             const element = getElementPosition(offsetX, offsetY, elements);
@@ -246,7 +256,8 @@ function HandleCanvas({
     const handleMouseMove = (e: MouseEvent) => {
         const { offsetX, offsetY } = e.nativeEvent;
         crosshair(offsetX, offsetY);
-        if (isSpaceDown.current === true || tool === "move") {
+        handleUpdateMouse(e);
+        if (isSpaceDownRef.current === true || tool === "move") {
             canvasRef.current!.style.cursor = "grab";
             if (isGrabbing !== true) return;
             handleImgMouseMove(e);
@@ -255,9 +266,10 @@ function HandleCanvas({
         }
         if (tool === "bounding") {
             if (action === "drawing") {
+                const { x, y } = getZoomPosition(offsetX, offsetY);
                 const index = elements.length - 1;
                 const { id, sX, sY, color, title } = elements[index];
-                updateElement(id, sX, sY, offsetX, offsetY, color, title);
+                updateElement(id, sX, sY, x, y, color, title);
             }
         } else if (tool === "select") {
             const element = getElementPosition(offsetX, offsetY, elements);
@@ -288,8 +300,9 @@ function HandleCanvas({
                 if (!selectedElement) return;
                 const { position, ...coordinates } = selectedElement;
                 const { id, color, title } = selectedElement;
+                const { x, y } = getZoomPosition(offsetX, offsetY);
                 if (!position) return;
-                const { sX, sY, cX, cY } = resizedCoordinates(offsetX, offsetY, position, coordinates);
+                const { sX, sY, cX, cY } = resizedCoordinates(x, y, position, coordinates);
 
                 updateElement(id, sX, sY, cX, cY, color, title);
             }
@@ -297,9 +310,8 @@ function HandleCanvas({
     };
     const handleMouseUp = (e: MouseEvent) => {
         const { offsetX, offsetY } = e.nativeEvent;
-        if (isSpaceDown.current === true || tool === "move") {
+        if (isSpaceDownRef.current === true || tool === "move") {
             setIsGrabbing(false);
-            handleImgMouseUp(e);
             canvasRef.current!.style.cursor = "grab";
             return;
         }
@@ -325,6 +337,11 @@ function HandleCanvas({
         setAction("none");
     };
 
+    const handleWheel = (e: React.WheelEvent) => {
+        handleUpdateMouse(e);
+        handleImgWheel(e);
+    };
+
     useEffect(() => {
         if (tool === "move") {
             canvasRef.current!.style.cursor = "grab";
@@ -333,16 +350,17 @@ function HandleCanvas({
         }
     }, [tool]);
 
+    /** 이미지 이동 */
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === "Space") {
-                isSpaceDown.current = true;
+                isSpaceDownRef.current = true;
             }
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
             if (e.code === "Space") {
-                isSpaceDown.current = false;
+                isSpaceDownRef.current = false;
                 setIsGrabbing(false);
                 canvasRef.current!.style.cursor = "default";
             }
@@ -356,13 +374,26 @@ function HandleCanvas({
         };
     }, []);
 
+    useEffect(() => {
+        const canvas = canvasRef.current!;
+        const preventDefault = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        };
+        canvas.addEventListener("wheel", preventDefault, { passive: false });
+        return () => {
+            canvas.removeEventListener("wheel", preventDefault);
+        };
+    }, []);
+
     return (
         <StyledHandler
             ref={canvasRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
-            onWheel={handleImgWheel}
+            onWheel={handleWheel}
         ></StyledHandler>
     );
 }
