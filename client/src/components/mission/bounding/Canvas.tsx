@@ -55,8 +55,6 @@ const ZOOM_SENSITIVITY = 500; // bigger for lower zoom per scroll
 const image = new Image();
 image.src = testImg;
 
-const resizePoint = 9;
-
 function Canvas({ tool, elements, setElements, categoryList, selectedElement, setSelectedElement, isReset, setIsReset }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
@@ -66,10 +64,14 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
     const [scale, setScale] = useState<number>(1);
     const [offsetPos, setOffsetPos] = useState<Point>(ORIGIN);
     const [viewportTopLeft, setViewportTopLeft] = useState<Point>(ORIGIN);
+    const mousePosRef = useRef<Point>(ORIGIN);
     const lastMousePosRef = useRef<Point>(ORIGIN);
     const lastOffsetRef = useRef<Point>(ORIGIN);
     const isZoomRef = useRef<boolean>(false);
-    const mousePosRef = useRef<Point>(ORIGIN);
+    const [isImgMove, setIsImgMove] = useState<boolean>(false);
+    const isGrabbingRef = useRef<boolean>(false);
+
+    const RESIZE_POINT = 9 / scale;
 
     useEffect(() => {
         const canvas = canvasRef.current!;
@@ -109,38 +111,6 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         }
     }, [ctx, isReset]);
 
-    const handleUpdateMouse = useCallback((event: MouseEvent) => {
-        const { offsetX, offsetY } = event.nativeEvent;
-        if (canvasRef.current) {
-            const viewportMousePos = { x: offsetX, y: offsetY };
-            const topLeftCanvasPos = {
-                x: canvasRef.current.offsetLeft,
-                y: canvasRef.current.offsetTop,
-            };
-            mousePosRef.current = diffPoints(viewportMousePos, topLeftCanvasPos);
-        }
-    }, []);
-
-    const handleImgMouseDown = useCallback((event: MouseEvent) => {
-        const { offsetX, offsetY } = event.nativeEvent;
-        lastMousePosRef.current = { x: offsetX, y: offsetY };
-    }, []);
-
-    const handleImgMouseMove = useCallback(
-        (event: MouseEvent) => {
-            const { offsetX, offsetY } = event.nativeEvent;
-            if (ctx) {
-                const lastMousePos = lastMousePosRef.current;
-                const currentMousePos = { x: offsetX, y: offsetY }; // use document so can pan off element
-                lastMousePosRef.current = currentMousePos;
-
-                const mouseDiff = diffPoints(currentMousePos, lastMousePos);
-                setOffsetPos((prevOffset) => addPoints(prevOffset, mouseDiff));
-            }
-        },
-        [ctx]
-    );
-
     useLayoutEffect(() => {
         if (ctx && lastOffsetRef.current) {
             const offsetDiff = scalePoint(diffPoints(offsetPos, lastOffsetRef.current), scale);
@@ -150,38 +120,71 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         }
     }, [ctx, offsetPos, scale, setIsReset]);
 
-    const reRender = useCallback(() => {
-        elements.forEach(({ id, sX, sY, cX, cY, color }) => {
-            // 기존 strokeRect는 보존하되 잔상 제거
-            const resizePointRect = resizePoint + 3; // +3 미세 조절
+    const cutLineStroke = useCallback(
+        (sX: number, sY: number, cX: number, cY: number) => {
+            if (!ctx) return;
+            ctx.setLineDash([5, 5]);
             const width = cX - sX;
             const height = cY - sY;
-            ctx?.setLineDash([0]);
-            // ctx!.globalAlpha = 1;
-            ctx!.strokeStyle = color;
-            ctx!.lineWidth = 2;
-            ctx?.strokeRect(sX, sY, width, height);
-            if (selectedElement) {
-                // 현재 선택중인 rect 색상 변경
-                if (id === selectedElement.id) {
-                    ctx!.fillStyle = "white";
-                    ctx?.strokeRect(sX, sY, width, height);
+            const cutLineX = width - width * 0.95;
+            const cutLineY = height - height * 0.95;
 
-                    ctx?.strokeRect(cX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
-                    ctx?.fillRect(cX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+            const cutLine = Math.min(cutLineX, cutLineY);
 
-                    ctx?.strokeRect(sX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
-                    ctx?.fillRect(sX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+            ctx.strokeRect(sX + cutLine / 2, sY + cutLine / 2, width - cutLine, height - cutLine);
+        },
+        [ctx]
+    );
 
-                    ctx?.strokeRect(sX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
-                    ctx?.fillRect(sX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+    const draw = useCallback(
+        (getElementId?: number) => {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.drawImage(image, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            elements.forEach(({ id, sX, sY, cX, cY, color }) => {
+                const resizePointRect = RESIZE_POINT + 3 / scale; // +3 미세 조절
+                const width = cX - sX;
+                const height = cY - sY;
+                ctx.setLineDash([0]);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2 / scale;
+                ctx.strokeRect(sX, sY, width, height);
 
-                    ctx?.strokeRect(cX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
-                    ctx?.fillRect(cX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+                if (getElementId === id) {
+                    if (!selectedElement || selectedElement.id !== getElementId) {
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillStyle = color;
+                        ctx.fillRect(sX, sY, width, height);
+                        ctx.globalAlpha = 1;
+                    }
                 }
-            }
-        });
-    }, [ctx, elements, selectedElement]);
+
+                if (selectedElement) {
+                    // 현재 선택중인 rect 색상 변경
+                    if (id === selectedElement.id) {
+                        ctx.fillStyle = "white";
+
+                        if (tool === "select") {
+                            ctx.strokeRect(cX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+                            ctx.fillRect(cX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+
+                            ctx.strokeRect(sX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+                            ctx.fillRect(sX - resizePointRect / 2, sY - resizePointRect / 2, resizePointRect, resizePointRect);
+
+                            ctx.strokeRect(sX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+                            ctx.fillRect(sX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+
+                            ctx.strokeRect(cX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+                            ctx.fillRect(cX - resizePointRect / 2, cY - resizePointRect / 2, resizePointRect, resizePointRect);
+                        }
+
+                        cutLineStroke(sX, sY, cX, cY);
+                    }
+                }
+            });
+        },
+        [ctx, elements, selectedElement, RESIZE_POINT, scale, cutLineStroke, tool]
+    );
 
     useEffect(() => {
         if (tool === "bounding") {
@@ -194,14 +197,80 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
         if (ctx) {
             // clear canvas but maintain transform
             const storedTransform = ctx.getTransform();
-
             ctx.canvas.width = ctx.canvas.width!;
+
             ctx.setTransform(storedTransform);
-            ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            ctx.drawImage(image, 0, 0, ctx.canvas.width, ctx.canvas.height); // ??
-            reRender();
+            draw();
         }
-    }, [ctx, scale, offsetPos, reRender, isReset]);
+    }, [ctx, scale, offsetPos, draw, isReset]);
+
+    const calculateMouse = useCallback((event: MouseEvent) => {
+        const { offsetX, offsetY } = event.nativeEvent;
+        if (canvasRef.current) {
+            const viewportMousePos = { x: offsetX, y: offsetY };
+            const topLeftCanvasPos = {
+                x: canvasRef.current.offsetLeft,
+                y: canvasRef.current.offsetTop,
+            };
+            mousePosRef.current = diffPoints(viewportMousePos, topLeftCanvasPos);
+        }
+    }, []);
+
+    const getMouseOverElement = useCallback(
+        (element: ISelectedElement | undefined) => {
+            if (element) {
+                draw(element.id);
+            } else {
+                draw();
+            }
+        },
+        [draw]
+    );
+
+    const handleImgMouseDown = useCallback(
+        (event: MouseEvent, handleCtx: CanvasRenderingContext2D) => {
+            const { offsetX, offsetY } = event.nativeEvent;
+            lastMousePosRef.current = { x: offsetX, y: offsetY };
+            if (isImgMove === true || tool === "move") {
+                isGrabbingRef.current = true;
+                handleCtx.canvas.style.cursor = "grabbing";
+            }
+        },
+        [tool, isImgMove]
+    );
+
+    const handleImgMouseMove = useCallback(
+        (event: MouseEvent, handleCtx: CanvasRenderingContext2D) => {
+            const { offsetX, offsetY } = event.nativeEvent;
+            calculateMouse(event);
+
+            if (isImgMove === true || tool === "move") {
+                handleCtx.canvas.style.cursor = "grab";
+                if (!isGrabbingRef.current) return;
+                handleCtx.canvas.style.cursor = "grabbing";
+
+                if (ctx) {
+                    const lastMousePos = lastMousePosRef.current;
+                    const currentMousePos = { x: offsetX, y: offsetY }; // use document so can pan off element
+                    lastMousePosRef.current = currentMousePos;
+
+                    const mouseDiff = diffPoints(currentMousePos, lastMousePos);
+                    setOffsetPos((prevOffset) => addPoints(prevOffset, mouseDiff));
+                }
+            }
+        },
+        [ctx, calculateMouse, tool, isImgMove]
+    );
+
+    const handleImgMouseUp = useCallback(
+        (handleCtx: CanvasRenderingContext2D) => {
+            if (isImgMove === true || tool === "move") {
+                isGrabbingRef.current = false;
+                handleCtx.canvas.style.cursor = "grab";
+            }
+        },
+        [tool, isImgMove]
+    );
 
     const handleImgWheel = useCallback(
         (event: React.WheelEvent) => {
@@ -213,6 +282,7 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                         y: (mousePosRef.current.y / scale) * (1 - 1 / zoom),
                     };
                     const newViewportTopLeft = addPoints(viewportTopLeft, viewportTopLeftDelta);
+
                     const newScale = scale * zoom;
                     if (MIN_SCALE > newScale || newScale > MAX_SCALE) return;
 
@@ -225,12 +295,37 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                     setIsReset(false);
                 }
             } else {
-                setOffsetPos((prev) => ({ x: prev.x - event.deltaX, y: prev.y - event.deltaY }));
                 setIsReset(false);
+                setOffsetPos((prev) => ({ x: prev.x - event.deltaX, y: prev.y - event.deltaY }));
             }
         },
         [ctx, viewportTopLeft, scale, setIsReset]
     );
+
+    //img move
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === "Space") {
+                setIsImgMove(true);
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.code === "Space") {
+                setIsImgMove(false);
+                isGrabbingRef.current = false;
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("keyup", handleKeyUp);
+        };
+    }, []);
+
+    //img zoom
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Control" || e.key === "Meta") {
@@ -266,9 +361,12 @@ function Canvas({ tool, elements, setElements, categoryList, selectedElement, se
                 handleImgWheel={handleImgWheel}
                 handleImgMouseDown={handleImgMouseDown}
                 handleImgMouseMove={handleImgMouseMove}
+                handleImgMouseUp={handleImgMouseUp}
                 viewportTopLeft={viewportTopLeft}
-                handleUpdateMouse={handleUpdateMouse}
                 scale={scale}
+                RESIZE_POINT={RESIZE_POINT}
+                isImgMove={isImgMove}
+                getMouseOverElement={getMouseOverElement}
             />
         </StyledWrap>
     );

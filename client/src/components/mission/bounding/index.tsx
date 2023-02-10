@@ -1,8 +1,8 @@
 import { useState } from "react";
 import styled from "styled-components";
-import Canvas from "./BoundingCanvas";
-import Tool from "./BoundingTool";
-import RightBar from "./BoundingRightBar";
+import Canvas from "./Canvas";
+import Tool from "./Tool";
+import RightBar from "./RightBar";
 import { IElements, ISelectedElement } from "./index.type";
 
 const StyledWrap = styled.div`
@@ -48,6 +48,7 @@ function BoundingComponent() {
                 setTool={setTool}
                 selectedElement={selectedElement}
                 setSelectedElement={setSelectedElement}
+                setIsReset={setIsReset}
             ></RightBar>
         </StyledWrap>
     );
